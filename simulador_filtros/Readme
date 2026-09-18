@@ -1,1 +1,474 @@
+# Simulador de Filtros Digitais em Python
 
+Projeto didático desenvolvido para demonstrar visualmente o funcionamento de filtros digitais aplicados ao condicionamento de sinais.
+
+A aplicação permite gerar um sinal senoidal, adicionar uma interferência de frequência diferente e observar o comportamento do sinal antes e depois da filtragem.
+
+## Funcionalidades
+
+- Geração de um sinal senoidal desejado;
+- geração de uma interferência senoidal;
+- combinação do sinal desejado com a interferência;
+- seleção do filtro por meio de uma interface gráfica;
+- configuração das frequências de corte;
+- comparação entre o sinal original, o sinal com interferência e o sinal filtrado;
+- limpeza dos gráficos para iniciar uma nova simulação.
+
+Os filtros disponíveis são:
+
+- passa-baixa;
+- passa-alta;
+- passa-faixa;
+- rejeita-faixa.
+
+## Tecnologias utilizadas
+
+- Python;
+- Tkinter e `ttk`, para a interface gráfica;
+- NumPy, para os cálculos e geração dos sinais;
+- Matplotlib, para a construção dos gráficos.
+
+## Requisitos
+
+É necessário possuir o Python 3 instalado.
+
+Instale as bibliotecas NumPy e Matplotlib pelo terminal:
+
+```bash
+pip install numpy matplotlib
+```
+
+O Tkinter normalmente acompanha a instalação oficial do Python.
+
+Em algumas distribuições Linux, pode ser necessário instalá-lo separadamente:
+
+```bash
+sudo apt install python3-tk
+```
+
+## Como executar
+
+1. Baixe ou clone este repositório.
+2. Abra o terminal na pasta do projeto.
+3. Execute o arquivo principal:
+
+```bash
+python sinalruidosopassabaixa.py
+```
+
+No Windows, caso o comando anterior não funcione, utilize:
+
+```bash
+py sinalruidosopassabaixa.py
+```
+
+## Como utilizar a interface
+
+Preencha os campos apresentados na interface.
+
+| Campo | Significado |
+|---|---|
+| Frequência do sinal | Frequência do sinal que se deseja analisar, em hertz |
+| Frequência do ruído | Frequência da interferência adicionada ao sinal |
+| Amplitude do ruído | Intensidade da interferência |
+| Tipo de filtro | Filtro que será aplicado ao sinal |
+| `fc1` | Primeira frequência de corte |
+| `fc2` | Segunda frequência de corte, utilizada no passa-faixa e no rejeita-faixa |
+
+Depois de preencher os valores:
+
+1. Escolha o tipo de filtro.
+2. Defina a frequência ou as frequências de corte.
+3. Clique em **APLICAR FILTRO**.
+4. Analise os gráficos apresentados.
+5. Clique em **LIMPAR GRÁFICOS** para iniciar outra simulação.
+
+## Construção do sinal
+
+O sinal desejado é criado pela instrução:
+
+```python
+sinal = np.sin(2 * np.pi * freq_sinal * t)
+```
+
+A interferência é criada por:
+
+```python
+ruido = amplitude_ruido * np.sin(
+    2 * np.pi * freq_ruido * t
+)
+```
+
+O sinal medido é a soma do sinal desejado com a interferência:
+
+```python
+sinal_ruidoso = sinal + ruido
+```
+
+Em termos matemáticos:
+
+\[
+x(t)=\sin(2\pi f_s t)+A_r\sin(2\pi f_r t)
+\]
+
+Em que:
+
+- \(f_s\) é a frequência do sinal desejado;
+- \(f_r\) é a frequência da interferência;
+- \(A_r\) é a amplitude da interferência;
+- \(t\) é o tempo.
+
+## Frequência de amostragem
+
+O programa utiliza:
+
+```python
+fs = 1000
+```
+
+Isso significa que são utilizadas 1.000 amostras por segundo.
+
+O intervalo entre duas amostras consecutivas é:
+
+\[
+\Delta t=\frac{1}{f_s}
+\]
+
+Para `fs = 1000`:
+
+\[
+\Delta t=\frac{1}{1000}=0{,}001\text{ s}
+\]
+
+## Filtro passa-baixa
+
+O filtro passa-baixa preserva principalmente as frequências menores que a frequência de corte e atenua as frequências mais altas.
+
+```python
+def filtro_passa_baixa(x, fc, fs):
+
+    dt = 1 / fs
+    RC = 1 / (2 * np.pi * fc)
+
+    alpha = dt / (RC + dt)
+
+    y = np.zeros_like(x)
+    y[0] = x[0]
+
+    for i in range(1, len(x)):
+
+        y[i] = (
+            y[i - 1]
+            + alpha * (x[i] - y[i - 1])
+        )
+
+    return y
+```
+
+### Significado dos parâmetros
+
+- `x`: sinal de entrada;
+- `fc`: frequência de corte;
+- `fs`: frequência de amostragem;
+- `y`: sinal filtrado.
+
+### Funcionamento
+
+O cálculo utiliza a amostra anterior da saída e a nova amostra de entrada.
+
+Isso produz uma suavização no sinal e reduz oscilações rápidas.
+
+### Exemplo
+
+Considere:
+
+- sinal desejado: 5 Hz;
+- interferência: 50 Hz;
+- frequência de corte: 10 Hz.
+
+O filtro tende a preservar a componente de 5 Hz e reduzir a componente de 50 Hz.
+
+## Filtro passa-alta
+
+O filtro passa-alta preserva principalmente as frequências maiores que a frequência de corte e atenua as frequências menores.
+
+```python
+def filtro_passa_alta(x, fc, fs):
+
+    dt = 1 / fs
+    RC = 1 / (2 * np.pi * fc)
+
+    alpha = RC / (RC + dt)
+
+    y = np.zeros_like(x)
+
+    for i in range(1, len(x)):
+
+        y[i] = alpha * (
+            y[i - 1]
+            + x[i]
+            - x[i - 1]
+        )
+
+    return y
+```
+
+### Exemplo
+
+Considere:
+
+- sinal desejado: 5 Hz;
+- interferência: 50 Hz;
+- frequência de corte: 40 Hz.
+
+A componente de 5 Hz será fortemente reduzida, enquanto a componente de 50 Hz será parcialmente preservada.
+
+## Filtro passa-faixa
+
+O filtro passa-faixa preserva as frequências localizadas entre duas frequências de corte.
+
+```python
+def filtro_passa_faixa(x, fc1, fc2, fs):
+
+    y = filtro_passa_alta(
+        x,
+        fc1,
+        fs
+    )
+
+    y = filtro_passa_baixa(
+        y,
+        fc2,
+        fs
+    )
+
+    return y
+```
+
+### Significado dos parâmetros
+
+- `x`: sinal de entrada;
+- `fc1`: frequência de corte inferior;
+- `fc2`: frequência de corte superior;
+- `fs`: frequência de amostragem;
+- `y`: sinal filtrado.
+
+### Funcionamento
+
+O filtro trabalha em duas etapas:
+
+1. O passa-alta reduz as frequências abaixo de `fc1`.
+2. O passa-baixa reduz as frequências acima de `fc2`.
+
+Assim, permanece principalmente a faixa de frequências localizada entre `fc1` e `fc2`.
+
+### Exemplo
+
+Considere:
+
+```text
+fc1 = 20 Hz
+fc2 = 50 Hz
+```
+
+Para um sinal contendo 5 Hz, 30 Hz e 80 Hz:
+
+- 5 Hz será atenuada;
+- 30 Hz será preservada;
+- 80 Hz será atenuada.
+
+## Filtro rejeita-faixa
+
+O filtro rejeita-faixa faz o contrário do passa-faixa.
+
+Ele atenua as frequências localizadas entre duas frequências de corte e preserva as frequências externas à faixa rejeitada.
+
+```python
+def filtro_rejeita_faixa(x, fc1, fc2, fs):
+
+    baixa = filtro_passa_baixa(
+        x,
+        fc1,
+        fs
+    )
+
+    alta = filtro_passa_alta(
+        x,
+        fc2,
+        fs
+    )
+
+    y = baixa + alta
+
+    return y
+```
+
+### Funcionamento
+
+O programa separa o sinal em duas partes:
+
+1. `baixa` guarda principalmente as frequências inferiores a `fc1`;
+2. `alta` guarda principalmente as frequências superiores a `fc2`;
+3. as duas partes são somadas;
+4. a faixa localizada entre `fc1` e `fc2` é atenuada.
+
+### Exemplo
+
+Considere:
+
+```text
+fc1 = 20 Hz
+fc2 = 50 Hz
+```
+
+Para um sinal contendo 5 Hz, 30 Hz e 80 Hz:
+
+- 5 Hz será preservada;
+- 30 Hz será rejeitada;
+- 80 Hz será preservada.
+
+## Frequências de corte
+
+A frequência de corte não representa uma divisão completamente abrupta.
+
+Como os filtros implementados são de primeira ordem, a atenuação ocorre gradualmente.
+
+Próximo à frequência de corte, uma componente pode continuar aparecendo na saída, porém com amplitude reduzida.
+
+Para os filtros passa-faixa e rejeita-faixa, deve ser obedecida a seguinte condição:
+
+```text
+fc1 < fc2
+```
+
+Caso contrário, o programa apresenta uma mensagem de erro.
+
+## Interpretação dos gráficos
+
+### Gráfico da esquerda
+
+Apresenta:
+
+- o sinal desejado;
+- o sinal desejado somado à interferência.
+
+### Gráfico da direita
+
+Apresenta:
+
+- o sinal após a aplicação do filtro;
+- o sinal desejado, utilizado como referência.
+
+### Eixos
+
+- Eixo horizontal: tempo, em segundos;
+- eixo vertical: amplitude do sinal.
+
+A unidade da amplitude depende da aplicação. Ela pode representar tensão, corrente, temperatura ou outra grandeza medida pelo sistema.
+
+## Funções da interface
+
+### Função `atualizar_interface()`
+
+Exibe o campo `fc2` somente quando o filtro escolhido utiliza duas frequências de corte:
+
+- passa-faixa;
+- rejeita-faixa.
+
+### Função `executar()`
+
+Essa função:
+
+1. lê os valores informados pelo usuário;
+2. gera o sinal desejado;
+3. gera a interferência;
+4. soma os dois sinais;
+5. identifica o filtro escolhido;
+6. aplica o filtro;
+7. atualiza os gráficos;
+8. apresenta a descrição do resultado.
+
+### Função `limpar()`
+
+A função `limpar()`:
+
+- apaga os gráficos anteriores;
+- redefine os títulos e os eixos;
+- prepara a interface para uma nova simulação.
+
+## Sugestões de testes
+
+### Teste 1 — Remover interferência de alta frequência
+
+| Parâmetro | Valor |
+|---|---:|
+| Sinal desejado | 5 Hz |
+| Interferência | 50 Hz |
+| Amplitude da interferência | 0,4 |
+| Filtro | Passa-baixa |
+| `fc1` | 10 Hz |
+
+### Teste 2 — Preservar a componente de alta frequência
+
+| Parâmetro | Valor |
+|---|---:|
+| Sinal desejado | 5 Hz |
+| Interferência | 50 Hz |
+| Amplitude da interferência | 0,4 |
+| Filtro | Passa-alta |
+| `fc1` | 40 Hz |
+
+### Teste 3 — Selecionar uma faixa
+
+| Parâmetro | Valor |
+|---|---:|
+| Sinal desejado | 30 Hz |
+| Interferência | 80 Hz |
+| Amplitude da interferência | 0,4 |
+| Filtro | Passa-faixa |
+| `fc1` | 20 Hz |
+| `fc2` | 50 Hz |
+
+Nesse teste, a componente de 30 Hz deverá ser preservada e a componente de 80 Hz deverá ser reduzida.
+
+### Teste 4 — Rejeitar uma faixa
+
+| Parâmetro | Valor |
+|---|---:|
+| Sinal desejado | 5 Hz |
+| Interferência | 30 Hz |
+| Amplitude da interferência | 0,4 |
+| Filtro | Rejeita-faixa |
+| `fc1` | 20 Hz |
+| `fc2` | 50 Hz |
+
+Nesse teste, a componente de 30 Hz deverá ser reduzida e a componente de 5 Hz deverá ser preservada.
+
+## Estrutura do projeto
+
+```text
+.
+├── README.md
+└── sinalruidosopassabaixa.py
+```
+
+## Objetivo educacional
+
+O projeto foi desenvolvido para apoiar o estudo dos seguintes temas:
+
+- condicionamento de sinais;
+- filtros digitais;
+- frequência de corte;
+- frequência de amostragem;
+- geração de sinais;
+- interferências e ruídos;
+- programação em Python;
+- interfaces gráficas com Tkinter;
+- visualização de dados com Matplotlib.
+
+O simulador pode ser utilizado em atividades de Sistemas Ciberfísicos, Internet das Coisas, processamento de sinais, automação e programação aplicada à Engenharia.
+
+## Autoria
+
+**Profa. Karla Roberto Sartin**  
+Engenharia Elétrica — Centro Universitário do Distrito Federal (UDF)
